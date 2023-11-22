@@ -1,8 +1,17 @@
 <script setup>
 import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
 import ColumnVue from './components/ColumnVue.vue'
 
+import { ref } from 'vue';
+
+// Reactive properties
+const selected = ref(null);
+
+// Methods
+const handleSelection = (item) => {
+  selected.value = item;
+  // Additional logic
+};
 
 const equipmentData = [
   {
