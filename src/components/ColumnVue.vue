@@ -7,7 +7,7 @@
                     <li v-for="(item, index) in column" :key="item.uuid" :data-uuid="item.uuid" tabindex="0"
                         :class="{ 'selected': isSelected(item) }" @click="handleItemClick(item, columnIndex)"
                         @keydown="handleKeyDown(item, index, $event)">
-                        {{ item.name }}
+                        <i :class="['mdi', getIconName(item)]"></i> {{ item.name }}
                     </li>
 
                 </ul>
@@ -19,8 +19,10 @@
 
 
 <script setup>
-import { ref, computed, defineProps, defineEmits } from 'vue';
+import { ref, computed } from 'vue';
 import ColumnVueBreadcrumbs from './ColumnVueBreadcrumbs.vue';
+import '@mdi/font/css/materialdesignicons.min.css';
+
 
 
 const props = defineProps({
@@ -169,21 +171,28 @@ const findParentItem = (childItem, items = props.equipments, parent = null) => {
     return null;
 };
 
+const getIconName = (item) => {
+    console.log(item.type);
+    switch (item.type) {
+        case 'Sensor': return 'mdi-radar';
+        case 'Controller': return 'mdi-gamepad-variant';
+        // Add more cases as needed
+        default: return 'mdi-alert-circle';
+    }
+};
 
 </script>
 
 <style scoped>
-.selected {
-    background-color: rgb(9, 84, 79);
-    /* or any other style to indicate selection */
-}
-
 .column-vue {
+    font-family: 'Arial', sans-serif;
     display: flex;
 }
 
 .column {
     margin-right: 20px;
+    border-right: 1px solid #ddd;
+    /* Adds a separator between columns */
 }
 
 ul {
@@ -194,5 +203,18 @@ ul {
 li {
     margin: 5px 0;
     cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+li:hover {
+    background-color: #f0f0f0;
+    /* Hover effect */
+}
+
+.selected {
+    background-color: #009688;
+    color: white;
 }
 </style>

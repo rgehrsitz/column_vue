@@ -9,6 +9,7 @@
     "test:unit": "vitest"
   },
   "dependencies": {
+    "@mdi/font": "^7.3.67",
     "vue": "^3.3.4"
   },
   "devDependencies": {
