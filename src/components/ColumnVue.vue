@@ -2,11 +2,14 @@
     <div>
         <column-vue-breadcrumbs :selected-path="selectedPath" @breadcrumbClick="handleBreadcrumbClick" />
         <div class="column-vue">
-            <div class="column" v-for="(column, columnIndex) in computedColumns" :key="columnIndex">
+            <div class="column" v-for="(column, columnIndex) in computedColumns" :key="columnIndex"
+                @drop="handleColumnDrop(columnIndex, $event)" @dragover="handleDragOver($event)">
                 <ul>
                     <li v-for="(item, index) in column" :key="item.uuid" :data-uuid="item.uuid" tabindex="0"
                         :class="{ 'selected': isSelected(item) }" @click="handleItemClick(item, columnIndex)"
-                        @keydown="handleKeyDown(item, index, $event)" :title="item.name">
+                        @keydown="handleKeyDown(item, index, $event)" :title="item.name" draggable="true"
+                        @dragstart="handleDragStart(item, $event)" @dragover="handleDragOver($event)"
+                        @drop="handleDrop(item, $event)">
                         <span class="item-text">{{ item.name }}</span>
                         <span v-if="item.children && item.children.length" class="mdi mdi-chevron-right"></span>
                     </li>
@@ -33,6 +36,104 @@ const props = defineProps({
 const emit = defineEmits(['select']);
 const selectedPath = ref([]);
 const selectedNode = ref(null);
+
+// Existing handleDrop method - remains the same
+const handleDrop = (targetItem, event) => {
+    event.preventDefault();
+    event.stopPropagation(); // Stop the event from propagating further
+
+    const draggedItemData = event.dataTransfer.getData('application/json');
+    const draggedItem = JSON.parse(draggedItemData);
+
+    // Check if the dragged item is the same as the target item
+    if (draggedItem.uuid === targetItem.uuid) {
+        // Do nothing if the item is dropped onto itself
+        return;
+    }
+
+    if (draggedItem && !isDescendantOf(targetItem, draggedItem)) {
+        moveItemToNewParent(draggedItem, targetItem);
+
+        // Update the selected node and path
+        selectedNode.value = draggedItem;
+        updateSelectedPathForItem(draggedItem);
+    }
+};
+
+
+
+
+// New handleColumnDrop method
+const handleColumnDrop = (columnIndex, event) => {
+    event.preventDefault();
+    const draggedItemData = event.dataTransfer.getData('application/json');
+    const draggedItem = JSON.parse(draggedItemData);
+
+    // Check if the drop is intended for the column (i.e., draggedItem is not null)
+    if (draggedItem) {
+        const parentItem = columnIndex > 0 ? selectedPath.value[columnIndex - 1] : null;
+
+        // Move the dragged item to the new parent
+        moveItemToNewParent(draggedItem, parentItem);
+
+        // Update the selected node and path
+        selectedNode.value = draggedItem;
+        updateSelectedPathForItem(draggedItem);
+    }
+};
+
+
+
+const handleDragStart = (item, event) => {
+    event.dataTransfer.setData('application/json', JSON.stringify(item));
+    // Prevent dragging onto its own children
+    event.dataTransfer.effectAllowed = 'move';
+};
+
+const handleDragOver = (event) => {
+    event.preventDefault();
+    // Additional logic if needed
+};
+
+const isDescendantOf = (potentialDescendant, potentialAncestor) => {
+    if (!potentialAncestor.children) return false;
+    if (potentialAncestor.children.some(child => child.uuid === potentialDescendant.uuid)) return true;
+    return potentialAncestor.children.some(child => isDescendantOf(potentialDescendant, child));
+};
+
+
+const moveItemToNewParent = (draggedItem, newParent) => {
+    // Remove the item from its current parent
+    removeItemFromParent(draggedItem);
+
+    // If newParent is null, it means the item is moved to the root level
+    if (newParent === null) {
+        props.equipments.push(draggedItem);
+    } else {
+        // Ensure the new parent has a children array
+        if (!newParent.children) {
+            newParent.children = [];
+        }
+        newParent.children.push(draggedItem);
+    }
+};
+
+const removeItemFromParent = (item) => {
+    const parentItem = findParentItem(item);
+    if (parentItem) {
+        const index = parentItem.children.findIndex(child => child.uuid === item.uuid);
+        if (index > -1) {
+            parentItem.children.splice(index, 1);
+        }
+    } else {
+        // If the item is at the root level
+        const index = props.equipments.findIndex(rootItem => rootItem.uuid === item.uuid);
+        if (index > -1) {
+            props.equipments.splice(index, 1);
+        }
+    }
+};
+
 const isSelected = (item) => {
     return selectedPath.value.some(pathItem => pathItem.uuid === item.uuid);
 };
