@@ -34,6 +34,11 @@
   --color-text: var(--vt-c-text-light-1);
 
   --section-gap: 160px;
+      --background-color: #f8f8f8;
+        --text-color: #333;
+        --border-color: #ddd;
+        --selected-background-color: #095453;
+        --selected-text-color: #fff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -47,6 +52,11 @@
 
     --color-heading: var(--vt-c-text-dark-1);
     --color-text: var(--vt-c-text-dark-2);
+            --background-color: #333;
+              --text-color: #fff;
+              --border-color: #444;
+              --selected-background-color: #26a69a;
+              --selected-text-color: #fff;
   }
 }
 

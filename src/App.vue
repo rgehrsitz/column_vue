@@ -28,7 +28,7 @@ const equipmentData = [
     "children": [
       {
         "uuid": "310e6903-0672-4809-aaee-682d79efc32b",
-        "name": "Sub Control Unit 1",
+        "name": "Sub Control Unit 1 with a very long description",
         "description": "",
         "type": "Controller",
         "date_time_created": "2023-11-22T22:23:52.827138",

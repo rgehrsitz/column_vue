@@ -6,15 +6,16 @@
                 <ul>
                     <li v-for="(item, index) in column" :key="item.uuid" :data-uuid="item.uuid" tabindex="0"
                         :class="{ 'selected': isSelected(item) }" @click="handleItemClick(item, columnIndex)"
-                        @keydown="handleKeyDown(item, index, $event)">
-                        <i :class="['mdi', getIconName(item)]"></i> {{ item.name }}
+                        @keydown="handleKeyDown(item, index, $event)" :title="item.name">
+                        <span class="item-text">{{ item.name }}</span>
+                        <span v-if="item.children && item.children.length" class="mdi mdi-chevron-right"></span>
                     </li>
-
                 </ul>
             </div>
         </div>
     </div>
 </template>
+
 
 
 
@@ -172,7 +173,6 @@ const findParentItem = (childItem, items = props.equipments, parent = null) => {
 };
 
 const getIconName = (item) => {
-    console.log(item.type);
     switch (item.type) {
         case 'Sensor': return 'mdi-radar';
         case 'Controller': return 'mdi-gamepad-variant';
@@ -181,40 +181,73 @@ const getIconName = (item) => {
     }
 };
 
+
 </script>
 
 <style scoped>
+:root {
+    --background-color: #f8f8f8;
+    --text-color: #333;
+    --border-color: #ddd;
+    --selected-background-color: #095453;
+    --selected-text-color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #333;
+        --text-color: #fff;
+        --border-color: #444;
+        --selected-background-color: #26a69a;
+        --selected-text-color: #fff;
+    }
+}
+
 .column-vue {
-    font-family: 'Arial', sans-serif;
     display: flex;
+    background-color: var(--background-color);
 }
 
 .column {
+    width: 200px;
     margin-right: 20px;
-    border-right: 1px solid #ddd;
-    /* Adds a separator between columns */
+    flex-shrink: 0;
+    border-right: 1px solid var(--border-color);
+    background-color: var(--background-color);
+    padding: 10px;
 }
 
 ul {
     list-style-type: none;
     padding: 0;
+    margin: 0;
+    width: 100%;
 }
 
 li {
     margin: 5px 0;
     cursor: pointer;
-    padding: 5px;
-    border-radius: 4px;
-    transition: background-color 0.3s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+    color: var(--text-color);
 }
 
-li:hover {
-    background-color: #f0f0f0;
-    /* Hover effect */
+li.selected {
+    background-color: var(--selected-background-color);
+    color: var(--selected-text-color);
 }
 
-.selected {
-    background-color: #009688;
-    color: white;
+.item-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.mdi-chevron-right {
+    /* Style for the chevron icon */
 }
 </style>
