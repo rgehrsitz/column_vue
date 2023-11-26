@@ -9,7 +9,7 @@
                         :class="{ 'selected': isSelected(item) }" @click="handleItemClick(item, columnIndex)"
                         @keydown="handleKeyDown(item, index, $event)" :title="item.name" draggable="true"
                         @dragstart="handleDragStart(item, $event)" @dragover="handleDragOver($event)"
-                        @drop="handleDrop(item, $event)">
+                        @drop="handleDrop(item, $event)" @contextmenu="handleContextMenu($event, item)">
                         <span class="item-text">{{ item.name }}</span>
                         <span v-if="item.children && item.children.length" class="mdi mdi-chevron-right"></span>
                     </li>
@@ -17,16 +17,124 @@
             </div>
         </div>
     </div>
+    <div v-if="showContextMenu" :style="{ top: contextMenuPosition.y + 'px', left: contextMenuPosition.x + 'px' }"
+        class="context-menu" @click.stop>
+        <ul>
+            <!-- Use `clipboard` to determine if 'Paste' should be disabled -->
+            <li :class="{ disabled: !isCutEnabled }" @click="cutItem">Cut</li>
+            <li :class="{ disabled: !isCopyEnabled }" @click="copyItem">Copy</li>
+            <li :class="{ disabled: !isPasteEnabled }" @click="pasteItem">Paste</li>
+
+
+
+
+
+        </ul>
+    </div>
 </template>
 
 
 
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import ColumnVueBreadcrumbs from './ColumnVueBreadcrumbs.vue';
 import '@mdi/font/css/materialdesignicons.min.css';
+import { v4 as uuidv4 } from 'uuid';
 
+const clipboard = ref(null);
+
+const isPasteEnabled = computed(() => clipboard.value !== null);
+const isCutEnabled = computed(() => selectedNode.value !== null);
+const isCopyEnabled = computed(() => selectedNode.value !== null);
+
+
+const showContextMenu = ref(false);
+const contextMenuItem = ref(null);
+const contextMenuPosition = ref({ x: 0, y: 0 });
+
+
+const generateNewUuidsForSubtree = (node) => {
+    const newNode = { ...node, uuid: uuidv4() }; // Assign a new UUID
+    if (newNode.children && newNode.children.length > 0) {
+        newNode.children = newNode.children.map(generateNewUuidsForSubtree); // Recursively update children
+    }
+    return newNode;
+};
+
+const handleContextMenu = (event, item) => {
+    event.preventDefault();
+    console.log('Context menu triggered for:', item);
+    showContextMenu.value = true;
+    contextMenuItem.value = item; // Store the item for which the context menu is opened
+    selectedNode.value = item; // Set the clicked item as selected
+    contextMenuPosition.value = { x: event.clientX, y: event.clientY };
+    console.log('Right-clicked item:', item); // Log the right-clicked item
+    console.log('Selected node after right-click:', selectedNode.value);
+    window.addEventListener('click', closeContextMenu);
+};
+
+watch(showContextMenu, (newValue) => {
+    if (!newValue) {
+        // Remove the listener when the context menu is not shown
+        window.removeEventListener('click', closeContextMenu);
+    }
+});
+
+const closeContextMenu = () => {
+    showContextMenu.value = false;
+};
+
+const cutItem = () => {
+    if (!selectedNode.value) {
+        console.log('Cut operation is not allowed');
+        return; // Exit if no node is selected
+    }
+    console.log('Cutting item:', selectedNode.value);
+    clipboard.value = { ...selectedNode.value }; // Clone the selected node
+    removeItemFromParent(selectedNode.value); // Remove from current parent
+    removeFromSelectedPath(selectedNode.value); // New function to update selectedPath
+    closeContextMenu();
+    selectedNode.value = null; // Deselect node after cutting
+};
+
+const copyItem = () => {
+    if (!selectedNode.value) {
+        console.log('Copy operation is not allowed');
+        return; // Exit if no node is selected
+    }
+    console.log('Copying item:', selectedNode.value);
+    clipboard.value = generateNewUuidsForSubtree(JSON.parse(JSON.stringify(selectedNode.value))); // Deep clone the selected node with new UUIDs
+    closeContextMenu();
+};
+
+
+const pasteItem = () => {
+    if (!clipboard.value || !selectedNode.value) {
+        console.log('Paste operation is not allowed');
+        return; // Exit if clipboard is empty or no node is selected
+    }
+    console.log('Pasting item:', clipboard.value);
+
+    // Rest of the paste logic
+    const clone = JSON.parse(JSON.stringify(clipboard.value)); // Deep clone the clipboard item
+    if (!selectedNode.value.children) {
+        selectedNode.value.children = []; // If selected node has no children array, create it
+    }
+    selectedNode.value.children.push(clone); // Add clone to children of selected node
+    closeContextMenu();
+
+    // Clear the clipboard after pasting
+    clipboard.value = null;
+};
+
+const removeFromSelectedPath = (item) => {
+    const index = selectedPath.value.findIndex(pathItem => pathItem.uuid === item.uuid);
+    if (index !== -1) {
+        // Remove the item and any of its descendants from the selected path
+        selectedPath.value.splice(index);
+    }
+};
 
 
 const props = defineProps({
@@ -119,6 +227,7 @@ const moveItemToNewParent = (draggedItem, newParent) => {
 };
 
 const removeItemFromParent = (item) => {
+    console.log('Removing item from parent:', item);
     const parentItem = findParentItem(item);
     if (parentItem) {
         const index = parentItem.children.findIndex(child => child.uuid === item.uuid);
@@ -190,6 +299,23 @@ const handleKeyDown = (item, index, event) => {
             break;
         default:
             break;
+    }
+
+    // New logic for Ctrl+C and Ctrl+V
+    if (event.ctrlKey || event.metaKey) { // Check if Ctrl or Command (for Mac) is pressed
+        switch (event.key) {
+            case 'c': // Ctrl+C
+                if (selectedNode.value) {
+                    clipboard = { ...selectedNode.value };
+                }
+                break;
+            case 'v': // Ctrl+V
+                if (clipboard && selectedNode.value) {
+                    // Implement logic to paste the clipboard content as a child of the selected node
+                    // You might need to update the data structure and ensure unique identifiers
+                }
+                break;
+        }
     }
 
     if (targetElement) {
@@ -348,7 +474,33 @@ li.selected {
     margin-right: 10px;
 }
 
-.mdi-chevron-right {
-    /* Style for the chevron icon */
+/* Add styles for your context menu */
+.context-menu {
+    position: absolute;
+    border: 1px solid var(--border-color);
+    background-color: var(--background-color);
+    z-index: 1000;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+.context-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.context-menu ul li {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+.context-menu ul li:hover {
+    background-color: var(--selected-background-color);
+}
+
+.context-menu ul li.disabled {
+    color: grey;
+    pointer-events: none;
 }
 </style>
