@@ -1,3 +1,13 @@
+/**
+ * Renders a tree view UI with drag & drop and context menu functionality.
+ *
+ * Features:
+ * - Drag & drop to reorder tree nodes
+ * - Keyboard navigation using arrow keys
+ * - Context menu with cut/copy/paste when right clicking a node
+ * - Breadcrumb component to display currently selected path
+ * - Computed columns layout based on selected path
+*/
 <template>
     <div>
         <column-vue-breadcrumbs :selected-path="selectedPath" @breadcrumbClick="handleBreadcrumbClick" />
@@ -6,7 +16,7 @@
                 @drop="handleColumnDrop(columnIndex, $event)" @dragover="handleDragOver($event)">
                 <ul>
                     <li v-for="(item, index) in column" :key="item.uuid" :data-uuid="item.uuid" tabindex="0"
-                        :class="{ 'selected': isSelected(item) }" @click="handleItemClick(item, columnIndex)"
+                        :class="{ selected: isSelected(item) }" @click="handleItemClick(item, columnIndex)"
                         @keydown="handleKeyDown(item, index, $event)" :title="item.name" draggable="true"
                         @dragstart="handleDragStart(item, $event)" @dragover="handleDragOver($event)"
                         @drop="handleDrop(item, $event)" @contextmenu="handleContextMenu($event, item)">
@@ -24,11 +34,6 @@
             <li :class="{ disabled: !isCutEnabled }" @click="cutItem">Cut</li>
             <li :class="{ disabled: !isCopyEnabled }" @click="copyItem">Copy</li>
             <li :class="{ disabled: !isPasteEnabled }" @click="pasteItem">Paste</li>
-
-
-
-
-
         </ul>
     </div>
 </template>
@@ -99,12 +104,10 @@ const cutItem = () => {
 };
 
 const copyItem = () => {
-    if (!selectedNode.value) {
-        console.log('Copy operation is not allowed');
-        return; // Exit if no node is selected
+    if (!selectedNode) {
+        return;
     }
-    console.log('Copying item:', selectedNode.value);
-    clipboard.value = generateNewUuidsForSubtree(JSON.parse(JSON.stringify(selectedNode.value))); // Deep clone the selected node with new UUIDs
+    clipboard = generateNewUuidsForSubtree(JSON.parse(JSON.stringify(selectedNode)));
     closeContextMenu();
 };
 
